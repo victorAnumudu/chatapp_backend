@@ -98,7 +98,7 @@ webSocketServer.on('connection', (connection, req)=>{
     mesData = JSON.parse(mesData)
     let webSocketClients = [...webSocketServer.clients]
     //FILTER TO GET THE RECIPIENT. NOTE IF YOU USE FIND, IT WILL RETURN ONLY ONE INSTANCE AND WE KNOW THAT ONE USER MAYBE CONNECTED TO SEVERAL DEVICES AT A TIME, THUS THE REASON FOR FILTER
-    webSocketClients?.filter(client => client.id == mesData.recipient || client.id == mesData.sender)?.forEach(client => {
+    webSocketClients?.filter(client => client.id == mesData.recipient)?.forEach(client => {
       client.send(JSON.stringify(mesData))
     });
   })
