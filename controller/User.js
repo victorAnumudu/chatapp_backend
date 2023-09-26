@@ -117,11 +117,12 @@ exports.handleLogin = async (req, res) => {
       }
     );
     return res
-    // .cookie("token", token, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === "production",
-    //   sameSite: false
-    // })
+    .cookie("token", token, {
+      // httpOnly: true,
+      secure: true,
+      sameSite: 'none'
+      // sameSite: false
+    })
     .status(200).json({
         status: 1,
         message: "user logged in",

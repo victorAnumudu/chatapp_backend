@@ -4,13 +4,13 @@ const dotenv = require("dotenv").config();
 const cors = require("cors");
 var cookieParser = require('cookie-parser')
 const fs = require("fs");
-
+const jwt = require('jsonwebtoken')
 const ws = require('ws') // WEB SOCKER
 
 const app = express(); // initializing express
 
 app.use(cookieParser()); // need cookieParser middleware before we can do anything with cookies
-app.use(cors());
+app.use(cors({credentials: true}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -48,8 +48,6 @@ mongoose
 //APP ROUTERS
 const userRoutes = require("./routes/User"); //user routes
 // const adminRoutes = require("./routes/Admin"); // admin routes
-// const orderRoutes = require("./routes/Orders"); // order routes
-// const productRoutes = require("./routes/Product"); // order routes
 
 //APP ROUTES
 app.get("/", (req, res) =>
@@ -57,12 +55,8 @@ app.get("/", (req, res) =>
 );
 
 app.use("/api", userRoutes); // All User routes
-// app.use("/api/user", userRoutes); // All User routes
-// app.use("/api/user", orderRoutes); // ALL ORDER ROUTES
 
 // app.use("/api/admin", adminRoutes); // ALL ADMN ROUTES
-
-// app.use("/api", productRoutes); // ALL PRODUCT ROUTES
 
 //sever connection
 const server = app.listen(port, () =>
@@ -74,7 +68,38 @@ const server = app.listen(port, () =>
 const webSocketServer = new ws.WebSocketServer({server})
 webSocketServer.on('connection', (connection, req)=>{
   // once connected, get the user that is connected using cookie token
-  // console.log('CONNECTED....WEB SOCKET', req.headers.cookie)
-  // connection.send('HELLO')
-  console.log([...webSocketServer.clients].length) // to see all connected users
+  // console.log([...webSocketServer.clients].length) // to see all connected users
+  let userCookie = req.headers.cookie?.split(';')?.find(token => token.startsWith('_token='))?.split('=')[1]
+  if(!userCookie){
+    userCookie = req.headers.cookie?.split(';')?.find(token => token.startsWith(' _token='))?.split('=')[1]
+  }
+  if(userCookie){
+    let user = jwt.verify(userCookie,process.env.JWT_SECRET_KEY)
+    if(user){
+      let {id, name} = user
+      connection.id = id
+      connection.username = name
+    }
+  }
+
+  let webSocketClients = [...webSocketServer.clients]
+  // NOTIFY USERS OF ALL CONNECTED USERS
+  webSocketClients.forEach(client => {
+    client.send(JSON.stringify(
+      [...webSocketServer.clients].map(client => (
+        {id:client.id, name:client.username}
+      )
+    )))
+    // console.log(client.id)
+  })
+
+  // WHEN A CONNECTION/USER SENDS A MESSAGE TO RECIPIENT
+  connection.on('message', (mesData)=>{
+    mesData = JSON.parse(mesData)
+    let webSocketClients = [...webSocketServer.clients]
+    //FILTER TO GET THE RECIPIENT. NOTE IF YOU USE FIND, IT WILL RETURN ONLY ONE INSTANCE AND WE KNOW THAT ONE USER MAYBE CONNECTED TO SEVERAL DEVICES AT A TIME, THUS THE REASON FOR FILTER
+    webSocketClients?.filter(client => client.id == mesData.recipient || client.id == mesData.sender)?.forEach(client => {
+      client.send(JSON.stringify(mesData))
+    });
+  })
 })
