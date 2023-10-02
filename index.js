@@ -47,7 +47,7 @@ mongoose
 
 //APP ROUTERS
 const userRoutes = require("./routes/User"); //user routes
-// const adminRoutes = require("./routes/Admin"); // admin routes
+const friendsRoutes = require('./routes/Friends')
 
 //APP ROUTES
 app.get("/", (req, res) =>
@@ -56,7 +56,7 @@ app.get("/", (req, res) =>
 
 app.use("/api", userRoutes); // All User routes
 
-// app.use("/api/admin", adminRoutes); // ALL ADMN ROUTES
+app.use("/api", friendsRoutes); // FRIEND ROUTE
 
 //sever connection
 const server = app.listen(port, () =>
@@ -98,8 +98,8 @@ webSocketServer.on('connection', (connection, req)=>{
     mesData = JSON.parse(mesData)
     let webSocketClients = [...webSocketServer.clients]
     //FILTER TO GET THE RECIPIENT. NOTE IF YOU USE FIND, IT WILL RETURN ONLY ONE INSTANCE AND WE KNOW THAT ONE USER MAYBE CONNECTED TO SEVERAL DEVICES AT A TIME, THUS THE REASON FOR FILTER
-    webSocketClients?.filter(client => client.id == mesData.recipient)?.forEach(client => {
-      client.send(JSON.stringify(mesData))
+    webSocketClients?.filter(client => client.id == mesData.recipient || client.id == mesData.sender)?.forEach(clients => {
+      clients.send(JSON.stringify(mesData))
     });
   })
 })
